@@ -1,0 +1,6 @@
+[submodule "emsdk"]
+	path = emsdk
+	url = git@github.com:emscripten-core/emsdk
+[submodule "www"]
+	path = www
+	url = git@github.com:bkalendar/k24.git
