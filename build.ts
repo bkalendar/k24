@@ -1,9 +1,20 @@
+/// <reference lib="deno.ns" />
+
 import { build } from "npm:esbuild";
 import {
   denoLoaderPlugin,
   denoResolverPlugin,
 } from "jsr:@luca/esbuild-deno-loader";
 import { solidPlugin } from "npm:esbuild-plugin-solid";
+
+const output = new Deno.Command("zig", {
+  args: [
+    "build",
+    "-Doptimize=Debug",
+  ],
+}).outputSync();
+
+console.log(output);
 
 const result = await build({
   entryPoints: ["index.tsx"],
