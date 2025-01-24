@@ -25,32 +25,17 @@ const Event = extern struct {
     properties: cabi.List(KV),
 };
 
-const ParseResult = extern struct {
-    events: cabi.List(Event),
-    src: cabi.String,
+const ParseResult = cabi.List(Event);
 
-    fn deinit(self: *ParseResult, allocator: std.mem.Allocator) void {
-        // we share the same properties for all events (lol)
-        for (self.events.toSlice()) |event| {
-            allocator.free(event.properties.toSlice());
-            break;
-        }
-        allocator.free(self.events.toSlice());
-        allocator.free(self.src.toSlice());
-    }
-};
-
-fn cabiPostParse(res: *ParseResult) callconv(.c) void {
-    res.deinit(cabi.allocator);
-    cabi.allocator.destroy(res);
+fn cabiPostParse(_: *ParseResult) callconv(.c) void {
+    _ = cabi.arena.reset(.free_all);
     std.debug.assert(!cabi.gpa.detectLeaks());
 }
 
 fn cabiParse(ptr: [*]u8, len: usize) callconv(.c) *ParseResult {
     const src = ptr[0..len];
-    var res = cabi.allocator.create(ParseResult) catch |err| cabi.oom(err);
-    res.src = .fromSlice(src);
-    res.events = .fromSlice(parse(cabi.allocator, src) catch |err| switch (err) {
+    const res = cabi.arena.allocator().create(ParseResult) catch |err| cabi.oom(err);
+    res.* = .fromSlice(parse(cabi.arena.allocator(), src) catch |err| switch (err) {
         error.OutOfMemory => cabi.oom(error.OutOfMemory),
     });
     return res;
@@ -240,8 +225,11 @@ pub const std_options: std.Options = .{
 };
 
 pub fn logFn(comptime level: std.log.Level, comptime scope: @TypeOf(.EnumLiteral), comptime format: []const u8, args: anytype) void {
-    const msg = std.fmt.allocPrint(cabi.allocator, "[{s}] " ++ format, .{@tagName(scope)} ++ args) catch return;
-    defer cabi.allocator.free(msg);
+    // i should probably use a persistent buffer for log strings
+    // but yeah, calling to JS console is probably more of a problem.
+    const allocator = cabi.gpa.allocator();
+    const msg = std.fmt.allocPrint(allocator, "[{s}] " ++ format, .{@tagName(scope)} ++ args) catch return;
+    defer allocator.free(msg);
     console.log(level, msg);
 }
 

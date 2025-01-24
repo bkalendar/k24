@@ -4,7 +4,9 @@ const std = @import("std");
 const log = std.log.scoped(.cabi);
 
 pub var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
-pub const allocator = gpa.allocator();
+
+/// Arena, typically used for allocating lowered params.
+pub var arena: std.heap.ArenaAllocator = .init(gpa.allocator());
 
 comptime {
     @export(&cabiRealloc, .{ .name = "cabi_realloc", .linkage = .weak });
@@ -12,7 +14,7 @@ comptime {
 
 fn cabiRealloc(ptr: [*]u8, old_n: usize, alignment: usize, new_n: usize) callconv(.c) [*]u8 {
     if (new_n == 0) return @ptrFromInt(alignment);
-    return @ptrCast(allocator.realloc(ptr[0..old_n], new_n) catch |err| oom(err));
+    return @ptrCast(arena.allocator().realloc(ptr[0..old_n], new_n) catch |err| oom(err));
 }
 
 pub fn oom(err: anytype) noreturn {
