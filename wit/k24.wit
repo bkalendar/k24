@@ -1,0 +1,27 @@
+package bkalendar:k24;
+
+interface calendar {
+  record event {
+    code: string,
+    name: string,
+    dtstart: u64,
+    dtend: u64,
+    location: string,
+    properties: list<tuple<string, string>>,
+  }
+}
+
+interface console {
+    info: func (msg: string);
+    debug: func (msg: string);
+    warn: func (msg: string);
+    error: func (msg: string);
+    trace: func ();
+}
+
+world parser {
+  use calendar.{event};
+  import console;
+  import epoch: func(year: u32) -> u64;
+  export parse: func(src: string) -> list<event>;
+}
