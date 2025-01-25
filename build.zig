@@ -56,7 +56,10 @@ pub fn build(b: *std.Build) void {
     b.getInstallStep().dependOn(&b.addInstallBinFile(component_file, "parser.component.wasm").step);
 
     const run_jco = b.addSystemCommand(&.{
-        "jco",
+        "deno",
+        "run",
+        "-A",
+        "npm:@bytecodealliance/jco",
         "transpile",
         "--name",
         "parser",
