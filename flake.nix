@@ -1,25 +1,24 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     zig.url = "github:mitchellh/zig-overlay";
   };
 
-  outputs = inputs: let
-    system = "aarch64-linux";
-    pkgs = inputs.nixpkgs.legacyPackages.${system};
+  outputs = inputs@{ nixpkgs, zig, ... }: let
+    lib = nixpkgs.lib;
+    forAllSystems = lib.genAttrs lib.systems.flakeExposed;
   in {
-    devShells.${system}.default = pkgs.mkShell {
-      packages = [
-        inputs.zig.packages.${system}.master
-        pkgs.wasm-tools
-        pkgs.wit-bindgen
-        pkgs.deno
-        pkgs.fish
-      ];
-
-      shellHook = ''
-        exec fish
-      '';
-    };
+    devShells = forAllSystems (system: let
+      pkgs = nixpkgs.legacyPackages.${system};
+    in {
+      default = pkgs.mkShell {
+        packages = with pkgs; [
+          zig.packages.${system}.master
+          wasm-tools
+          wit-bindgen
+          deno
+        ];
+      };
+    });
   };
 }
